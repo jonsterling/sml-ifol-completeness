@@ -83,18 +83,18 @@ struct
     case P.out (Context.lookup H v) of
          P.$ (TRUE, #[]) => proofFromEvidence (H, prop, E.subst E.ax v evd)
        | P.$ (FALSE, #[]) => D.$$ (FALSE_ELIM, #[D.``v])
-       | P.$ (EXISTS, #[P,xQ]) =>
+       | P.$ (EXISTS, #[xQ]) =>
            let
              val s = Context.fresh (H, V.named "s")
              val t = Context.fresh (H, V.named "t")
-             val H' = Context.empty @@ (s, P) @@ (t, P.subst1 xQ (P.`` s))
+             val H' = Context.empty @@ (s, P.$$ (BASE, #[])) @@ (t, P.subst1 xQ (P.`` s))
              val H'' = Context.interposeAfter H (v, raise Nope)
              val pair = E.pair (E.`` s, E.`` t)
              val D = proofFromEvidence (H'', prop, E.subst pair v evd)
            in
              D.$$ (EXISTS_ELIM, #[D.\\ (s, D.\\ (t, D))])
            end
-       | P.$ (FORALL, #[P, xQ]) =>
+       | P.$ (FORALL, #[xQ]) =>
            raise Nope
        | P.$ (BASE, _) => D.`` v
        | _ => raise Nope
