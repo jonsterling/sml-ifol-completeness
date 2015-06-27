@@ -81,7 +81,7 @@ struct
 
   and eliminationMode (H : context, prop : P.t, evd : E.t, v : E.Variable.t) : D.t =
     case P.out (Context.lookup H v) of
-         P.$ (TRUE, #[]) => proofFromEvidence (H, prop, E.subst E.ax v evd)
+         P.$ (TRUE, #[]) => proofFromEvidence (H, prop, E.subst (EC.into EC.AX) v evd)
        | P.$ (FALSE, #[]) => D.$$ (FALSE_ELIM, #[D.``v])
        | P.$ (EXISTS, #[xQ]) =>
            let
@@ -89,7 +89,7 @@ struct
              val t = Context.fresh (H, V.named "t")
              val H' = Context.empty @@ (s, P.$$ (BASE, #[])) @@ (t, P.subst1 xQ (P.`` s))
              val H'' = Context.interposeAfter H (v, raise Nope)
-             val pair = E.pair (E.`` s, E.`` t)
+             val pair = EC.into (EC.PAIR (E.`` s, E.`` t))
              val D = proofFromEvidence (H'', prop, E.subst pair v evd)
            in
              D.$$ (EXISTS_ELIM, #[D.\\ (s, D.\\ (t, D))])

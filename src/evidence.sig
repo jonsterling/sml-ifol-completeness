@@ -1,10 +1,6 @@
 signature EVIDENCE =
 sig
   include ABT_UTIL
-  val eval : t -> t
-
-  val ax : t
-  val pair : t * t -> t
 
   structure Canon :
   sig
