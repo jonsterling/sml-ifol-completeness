@@ -96,6 +96,6 @@ struct
            end
        | P.$ (FORALL, #[xQ]) =>
            raise Nope
-       | P.$ (BASE, _) => D.`` v
+       | P.$ (BASE, _) => D.`` v (* TODO: wrong *)
        | _ => raise Fail "Catchall"
 end
