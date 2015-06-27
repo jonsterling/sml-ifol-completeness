@@ -16,6 +16,11 @@ struct
 
   exception Nope
 
+  fun asVariable X =
+    case E.out X of
+         E.` d => d
+       | _ => raise Nope
+
   fun proofFromEvidence (H : context, prop : P.t, evd : E.t) : D.t =
     case E.compute evd of
          E.CANON t => introductionMode (H, prop, t)
@@ -24,20 +29,12 @@ struct
   and introductionMode (H : context, prop : P.t, M : EC.canonical_form) : D.t =
     case (P.out prop, M) of
          (P.$ (TRUE, _), EC.AX) => D.$$ (TRUE_INTRO, #[])
-       | (P.$ (EXISTS, #[A,xB]), EC.PAIR (N1, N2)) =>
+       | (P.$ (AND, #[A,B]), EC.PAIR (N1, N2)) =>
            let
-             val (x, B) = P.unbind xB
              val D1 = proofFromEvidence (H, A, N1)
-             val D2 = proofFromEvidence (H @@ (x, A), B, N2)
+             val D2 = proofFromEvidence (H, B, N2)
            in
-             D.$$ (EXISTS_INTRO, #[D1, D2])
-           end
-       | (P.$ (FORALL, #[A,xB]), EC.LAM (z, E)) =>
-           let
-             val (x, B) = P.unbind xB
-             val D = proofFromEvidence (H @@ (x, A), B, E.subst (E.`` x) z E)
-           in
-             D.$$ (FORALL_INTRO, #[D.\\ (x, D)])
+             D.$$ (AND_INTRO, #[D1, D2])
            end
        | (P.$ (OR, #[A,B]), EC.INL N) =>
            let
@@ -51,6 +48,35 @@ struct
            in
              D.$$ (OR_INTRO_R, #[D])
            end
+       | (P.$ (IMPLIES, #[A,B]), EC.LAM (z, E)) =>
+           let
+             val D = proofFromEvidence (H @@ (z, A), B, E)
+           in
+             D.$$ (IMPLIES_INTRO, #[D.\\ (z, D)])
+           end
+       | (P.$ (FORALL, #[xB]), EC.LAM (z, E)) =>
+           let
+             val (x, B) = P.unbind xB
+             val D = proofFromEvidence (H @@ (x, P.$$ (BASE, #[])), B, E.subst (E.`` x) z E)
+           in
+             D.$$ (FORALL_INTRO, #[D.\\ (x, D)])
+           end
+       | (P.$ (EXISTS, #[xB]), EC.PAIR (N1, N2)) =>
+           (case E.compute N1 of
+                E.NONCANON (N1', _) =>
+                  let
+                    val d = asVariable N1'
+                  in
+                    if P.eq (Context.lookup H d, P.$$ (BASE, #[])) then
+                      let
+                        val D = proofFromEvidence (H, P.// (xB, P.`` d), N2)
+                      in
+                        D.$$ (EXISTS_INTRO, #[D])
+                      end
+                    else
+                      raise Nope
+                  end
+              | _ => raise Nope)
        | _ => raise Nope
 
   and eliminationMode (H : context, prop : P.t, evd : E.t, v : E.Variable.t) : D.t =
@@ -68,5 +94,8 @@ struct
            in
              D.$$ (EXISTS_ELIM, #[D.\\ (s, D.\\ (t, D))])
            end
+       | P.$ (FORALL, #[P, xQ]) =>
+           raise Nope
+       | P.$ (BASE, _) => D.`` v
        | _ => raise Nope
 end
