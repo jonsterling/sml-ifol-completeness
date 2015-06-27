@@ -13,15 +13,15 @@ end
 
 structure ProofOperators =
 struct
-  datatype t =
+  datatype 'prop t =
       TRUE_INTRO
-    | FALSE_ELIM
+    | FALSE_ELIM of 'prop
     | OR_INTRO_L
     | OR_INTRO_R
-    | OR_ELIM
+    | OR_ELIM of 'prop
     | AND_INTRO
-    | AND_ELIM
-    | IMPLIES_INTRO
+    | AND_ELIM of 'prop
+    | IMPLIES_INTRO of 'prop
     | IMPLIES_ELIM
     | FORALL_INTRO
     | FORALL_ELIM
@@ -35,5 +35,5 @@ sig
     where type Operator.t = PropositionalOperators.t
 
   structure Proof : ABT_UTIL
-    where type Operator.t = ProofOperators.t
+    where type Operator.t = Prop.t ProofOperators.t
 end

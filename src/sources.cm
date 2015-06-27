@@ -6,3 +6,8 @@ group is
   evidence.sig
   propositional_logic.sig
   proof_from_evidence.fun
+
+  variable.sml
+  evidence.sml
+  propositional_logic.sml
+  test.sml

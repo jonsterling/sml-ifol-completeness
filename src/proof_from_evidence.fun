@@ -52,7 +52,7 @@ struct
            let
              val D = proofFromEvidence (H @@ (z, A), B, E)
            in
-             D.$$ (IMPLIES_INTRO, #[D.\\ (z, D)])
+             D.$$ (IMPLIES_INTRO A, #[D.\\ (z, D)])
            end
        | (P.$ (FORALL, #[xB]), EC.LAM (z, E)) =>
            let
@@ -74,21 +74,21 @@ struct
                         D.$$ (EXISTS_INTRO, #[D])
                       end
                     else
-                      raise Nope
+                      raise Fail "EXISTS"
                   end
               | _ => raise Nope)
-       | _ => raise Nope
+       | _ => raise Fail (P.toString prop)
 
   and eliminationMode (H : context, prop : P.t, evd : E.t, v : E.Variable.t) : D.t =
     case P.out (Context.lookup H v) of
          P.$ (TRUE, #[]) => proofFromEvidence (H, prop, E.subst (EC.into EC.AX) v evd)
-       | P.$ (FALSE, #[]) => D.$$ (FALSE_ELIM, #[D.``v])
+       | P.$ (FALSE, #[]) => D.$$ (FALSE_ELIM prop, #[D.``v])
        | P.$ (EXISTS, #[xQ]) =>
            let
              val s = Context.fresh (H, V.named "s")
              val t = Context.fresh (H, V.named "t")
              val H' = Context.empty @@ (s, P.$$ (BASE, #[])) @@ (t, P.subst1 xQ (P.`` s))
-             val H'' = Context.interposeAfter H (v, raise Nope)
+             val H'' = Context.interposeAfter H (v, H')
              val pair = EC.into (EC.PAIR (E.`` s, E.`` t))
              val D = proofFromEvidence (H'', prop, E.subst pair v evd)
            in
@@ -97,5 +97,5 @@ struct
        | P.$ (FORALL, #[xQ]) =>
            raise Nope
        | P.$ (BASE, _) => D.`` v
-       | _ => raise Nope
+       | _ => raise Fail "Catchall"
 end
