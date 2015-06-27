@@ -1,0 +1,8 @@
+group is
+  ../lib/sml-abt/abt.cm
+  ../lib/cmlib/cmlib.cm
+  ../lib/telescopes/telescopes.cm
+
+  evidence.sig
+  propositional_logic.sig
+  proof_from_evidence.fun

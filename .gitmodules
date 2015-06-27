@@ -1,0 +1,6 @@
+[submodule "lib/sml-abt"]
+	path = lib/sml-abt
+	url = https://github.com/jonsterling/sml-abt.git
+[submodule "lib/cmlib"]
+	path = lib/cmlib
+	url = https://github.com/standardml/cmlib.git
