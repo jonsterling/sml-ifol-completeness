@@ -32,6 +32,26 @@ struct
            in
              D.$$ (EXISTS_INTRO, #[D1, D2])
            end
+       | (P.$ (FORALL, #[A,xB]), EC.LAM (z, E)) =>
+           let
+             val (x, B) = P.unbind xB
+             val D = proofFromEvidence (H @@ (x, A), B, E.subst (E.`` x) z E)
+           in
+             D.$$ (FORALL_INTRO, #[D.\\ (x, D)])
+           end
+       | (P.$ (OR, #[A,B]), EC.INL N) =>
+           let
+             val D = proofFromEvidence (H, A, N)
+           in
+             D.$$ (OR_INTRO_L, #[D])
+           end
+       | (P.$ (OR, #[A,B]), EC.INR N) =>
+           let
+             val D = proofFromEvidence (H, B, N)
+           in
+             D.$$ (OR_INTRO_R, #[D])
+           end
+       | _ => raise Nope
 
   and eliminationMode (H : context, prop : P.t, evd : E.t, v : E.Variable.t) : D.t =
     case P.out (Context.lookup H v) of

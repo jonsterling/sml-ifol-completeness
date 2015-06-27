@@ -13,6 +13,7 @@ sig
       | PAIR of t * t
       | INL of t
       | INR of t
+      | LAM of Variable.t * t
 
     val into : canonical_form -> t
   end
