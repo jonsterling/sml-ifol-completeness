@@ -5,6 +5,7 @@ struct
     | PAIR | SPREAD
     | INL | INR | DECIDE
     | LAM | AP
+    | FREE_CHOICE
 
   val eq : t * t -> bool = op=
 
@@ -15,6 +16,7 @@ struct
     | arity INR = #[0]
     | arity DECIDE = #[0,1,1]
     | arity LAM = #[1]
+    | arity FREE_CHOICE = #[]
     | arity AP = #[0,0]
 
   fun toString AX = "<>"
@@ -24,6 +26,7 @@ struct
     | toString INR = "inr"
     | toString DECIDE = "decide"
     | toString LAM = "lam"
+    | toString FREE_CHOICE = "free-choice"
     | toString AP = "ap"
 end
 
@@ -42,49 +45,69 @@ struct
 
   infix $ $$ \\ \ //
 
-  structure Canon =
-  struct
-    datatype canonical_form =
-        AX
-      | PAIR of t * t
-      | INL of t
-      | INR of t
-      | LAM of Variable.t * t
+  datatype primary =
+      AX
+    | PAIR of t * t
+    | INL of t
+    | INR of t
+    | AP of t * t
+    | OTHERV of t
 
-    fun into AX = Ops.AX $$ #[]
-      | into (PAIR (M,N)) = Ops.PAIR $$ #[M,N]
-      | into (INL M) = Ops.INL $$ #[M]
-      | into (INR M) = Ops.INR $$ #[M]
-      | into (LAM (x, E)) = Ops.INR $$ #[x \\ E]
-  end
+  datatype neutral =
+      VAR of Variable.t
+    | OTHER of t
+
+  fun primary AX = Ops.AX $$ #[]
+    | primary (PAIR (M,N)) = Ops.PAIR $$ #[M,N]
+    | primary (INL M) = Ops.INL $$ #[M]
+    | primary (INR M) = Ops.INR $$ #[M]
+    | primary (AP (M,N)) = Ops.AP $$ #[M,N]
+    | primary (OTHERV M) = M
+
+  fun neutral (VAR x) = ``x
+    | neutral (OTHER R) = R
 
   datatype result =
-      CANON of Canon.canonical_form
-    | NONCANON of t * Variable.t
+      PRIMARY of primary
+    | NEUTRAL of neutral * Variable.t
+
+  val switch = ref true
+  fun getChoice () =
+    let
+      val operator = if !switch then INL else INR
+    in
+      switch := not (!switch);
+      operator (Ops.AX $$ #[])
+    end
 
   fun compute E =
     case out E of
-         Ops.AX $ #[] => CANON Canon.AX
-       | Ops.PAIR $ #[M,N] => CANON (Canon.PAIR (M,N))
-       | Ops.INL $ #[M] => CANON (Canon.INL M)
-       | Ops.INR $ #[M] => CANON (Canon.INR M)
-       | Ops.LAM $ #[xE] => CANON (Canon.LAM (unbind xE))
+         Ops.AX $ #[] => PRIMARY AX
+       | Ops.PAIR $ #[M,N] => PRIMARY (PAIR (M,N))
+       | Ops.INL $ #[M] => PRIMARY (INL M)
+       | Ops.INR $ #[M] => PRIMARY (INR M)
+       | Ops.LAM $ #[xE] => PRIMARY (OTHERV E)
+       | Ops.FREE_CHOICE $ #[] => PRIMARY (OTHERV E)
        | Ops.AP $ #[M,N] =>
            (case compute M of
-                 CANON (Canon.LAM (x,E)) => compute (subst N x E)
-               | NONCANON (R, u) => NONCANON (Ops.AP $$ #[R, N], u)
+                 PRIMARY (OTHERV M') =>
+                   (case out M' of
+                        Ops.LAM $ #[xE] => compute (xE // N)
+                      | Ops.FREE_CHOICE $ #[] => PRIMARY (getChoice ())
+                      | _ => raise Stuck)
+               | NEUTRAL (R, u) => PRIMARY (AP (neutral R,N))
                | _ => raise Stuck)
        | Ops.SPREAD $ #[M, xyE] =>
            (case compute M of
-                 CANON (Canon.PAIR (M1, M2)) => compute ((xyE // M1) // M2)
-               | NONCANON (R, u) => NONCANON (Ops.SPREAD $$ #[R, xyE], u)
+                 PRIMARY (PAIR (M1, M2)) => compute ((xyE // M1) // M2)
+               | NEUTRAL (R, u) => NEUTRAL (OTHER (Ops.SPREAD $$ #[neutral R, xyE]), u)
                | _ => raise Stuck)
        | Ops.DECIDE $ #[M, xE, yF] =>
            (case compute M of
-                 CANON (Canon.INL M') => compute (xE // M')
-               | CANON (Canon.INR M') => compute (yF // M')
-               | NONCANON (R, u) => NONCANON (Ops.DECIDE $$ #[R, xE, yF], u)
+                 PRIMARY (INL M') => compute (xE // M')
+               | PRIMARY (INR M') => compute (yF // M')
+               | NEUTRAL (R, u) => NEUTRAL (OTHER (Ops.DECIDE $$ #[neutral R, xE, yF]), u)
                | _ => raise Stuck)
-       | ` x => NONCANON (``x, x)
+       | ` x => NEUTRAL (VAR x, x)
        | _ => raise Fail (toString E)
 end

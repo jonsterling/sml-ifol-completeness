@@ -2,21 +2,27 @@ signature EVIDENCE =
 sig
   include ABT_UTIL
 
-  structure Canon :
-  sig
-    datatype canonical_form =
-        AX
-      | PAIR of t * t
-      | INL of t
-      | INR of t
-      | LAM of Variable.t * t
+  (* These represent the known forms of evidence. For the evidence of a positive
+   * type, this is an introduction form; for the evidence of a negative type,
+   * this is an elimination form. *)
+  datatype primary =
+      AX
+    | PAIR of t * t
+    | INL of t
+    | INR of t
+    | AP of t * t
+    | OTHERV of t
 
-    val into : canonical_form -> t
-  end
+  datatype neutral =
+      VAR of Variable.t
+    | OTHER of t
+
+  val primary : primary -> t
+  val neutral : neutral -> t
 
   datatype result =
-      CANON of Canon.canonical_form
-    | NONCANON of t * Variable.t
+      PRIMARY of primary
+    | NEUTRAL of neutral * Variable.t
 
   val compute : t -> result
 

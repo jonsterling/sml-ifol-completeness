@@ -13,15 +13,15 @@ end
 
 structure ProofOperators =
 struct
-  datatype 'prop t =
+  datatype ''prop t =
       TRUE_INTRO
-    | FALSE_ELIM of 'prop
+    | FALSE_ELIM of ''prop
     | OR_INTRO_L
     | OR_INTRO_R
-    | OR_ELIM of 'prop
+    | OR_ELIM of ''prop
     | AND_INTRO
-    | AND_ELIM of 'prop
-    | IMPLIES_INTRO of 'prop
+    | AND_ELIM of ''prop
+    | IMPLIES_INTRO of ''prop
     | IMPLIES_ELIM
     | FORALL_INTRO
     | FORALL_ELIM
