@@ -26,7 +26,7 @@ struct
          E.PRIMARY t => primaryMode (H, prop, t)
        | E.NEUTRAL (t, v) => eliminationMode (H, prop, t, v)
 
-  and primaryMode (H : context, prop : P.t, M : E.primary) : D.t =
+  and primaryMode (H : context, prop : P.t, M : E.known_view) : D.t =
     case (P.out prop, M) of
          (P.$ (TRUE, _), E.AX) => D.$$ (TRUE_INTRO, #[])
        | (P.$ (AND, #[A,B]), E.PAIR (N1, N2)) =>
@@ -50,20 +50,20 @@ struct
            end
        | (P.$ (IMPLIES, #[A,B]), M) =>
            let
-             val z = V.named "z"
-             val aptm = E.primary (E.AP (E.primary M, E.`` z))
+             val z = Context.fresh (H, V.named "z")
+             val aptm = E.unview (E.AP (E.unview M, E.`` z))
              val D = proofFromEvidence (H @@ (z, A), B, aptm)
            in
              D.$$ (IMPLIES_INTRO A, #[D.\\ (z, D)])
            end
-       (*| (P.$ (FORALL, #[zB]), M) =>
+       | (P.$ (FORALL, #[zB]), M) =>
            let
              val (z, B) = P.unbind zB
-             val aptm = E.primary (E.AP (M, E.`` z))
+             val aptm = E.unview (E.AP (E.unview M, E.`` z))
              val D = proofFromEvidence (H @@ (z, P.$$ (BASE, #[])), B, aptm)
            in
              D.$$ (FORALL_INTRO, #[D.\\ (z, D)])
-           end*)
+           end
        | (P.$ (EXISTS, #[xB]), E.PAIR (N1, N2)) =>
            (case E.compute N1 of
                 E.NEUTRAL (E.VAR d, _) =>
@@ -78,7 +78,7 @@ struct
               | _ => raise Nope)
        | _ => raise Fail ("welp " ^ P.toString prop)
 
-  and eliminationMode (H : context, prop : P.t, R : E.neutral, v : V.t) : D.t =
+  and eliminationMode (H : context, prop : P.t, R : E.known_view, v : V.t) : D.t =
     case P.out (Context.lookup H v) of
          P.$ (FALSE, #[]) => D.$$ (FALSE_ELIM prop, #[D.``v])
        | P.$ (EXISTS, #[xQ]) =>
@@ -87,11 +87,18 @@ struct
              val t = Context.fresh (H, V.named "t")
              val H' = Context.empty @@ (s, P.$$ (BASE, #[])) @@ (t, P.subst1 xQ (P.`` s))
              val H'' = Context.interposeAfter H (v, H')
-             val pair = E.primary (E.PAIR (E.`` s, E.`` t))
-             val D = proofFromEvidence (H'', prop, E.subst pair v (E.neutral R))
+             val pair = E.unview (E.PAIR (E.`` s, E.`` t))
+             val D = proofFromEvidence (H'', prop, E.subst pair v (E.unview R))
            in
              D.$$ (EXISTS_ELIM, #[D.\\ (s, D.\\ (t, D))])
            end
-       | P.$ (BASE, _) => D.`` v (* TODO: wrong *)
+       | P.$ (IMPLIES, #[P, Q]) =>
+           let
+             val E.AP (M,N) = R
+             val D = proofFromEvidence (H, P, N)
+           in
+             D.$$ (IMPLIES_ELIM, #[D])
+           end
+       | P.$ (BASE, _) => D.`` v
        | _ => (case R of E.VAR x => D.`` x | _ => raise Nope)
 end

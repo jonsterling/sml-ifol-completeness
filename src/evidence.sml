@@ -45,31 +45,26 @@ struct
 
   infix $ $$ \\ \ //
 
-  datatype primary =
+  datatype known_view =
       AX
     | PAIR of t * t
     | INL of t
     | INR of t
     | AP of t * t
-    | OTHERV of t
-
-  datatype neutral =
-      VAR of Variable.t
+    | VAR of Variable.t
     | OTHER of t
 
-  fun primary AX = Ops.AX $$ #[]
-    | primary (PAIR (M,N)) = Ops.PAIR $$ #[M,N]
-    | primary (INL M) = Ops.INL $$ #[M]
-    | primary (INR M) = Ops.INR $$ #[M]
-    | primary (AP (M,N)) = Ops.AP $$ #[M,N]
-    | primary (OTHERV M) = M
-
-  fun neutral (VAR x) = ``x
-    | neutral (OTHER R) = R
-
   datatype result =
-      PRIMARY of primary
-    | NEUTRAL of neutral * Variable.t
+      PRIMARY of known_view
+    | NEUTRAL of known_view * Variable.t
+
+  fun unview AX = Ops.AX $$ #[]
+    | unview (PAIR (M,N)) = Ops.PAIR $$ #[M,N]
+    | unview (INL M) = Ops.INL $$ #[M]
+    | unview (INR M) = Ops.INR $$ #[M]
+    | unview (AP (M,N)) = Ops.AP $$ #[M,N]
+    | unview (VAR x) = ``x
+    | unview (OTHER M) = M
 
   val switch = ref true
   fun getChoice () =
@@ -86,27 +81,27 @@ struct
        | Ops.PAIR $ #[M,N] => PRIMARY (PAIR (M,N))
        | Ops.INL $ #[M] => PRIMARY (INL M)
        | Ops.INR $ #[M] => PRIMARY (INR M)
-       | Ops.LAM $ #[xE] => PRIMARY (OTHERV E)
-       | Ops.FREE_CHOICE $ #[] => PRIMARY (OTHERV E)
+       | Ops.LAM $ #[xE] => PRIMARY (OTHER E)
+       | Ops.FREE_CHOICE $ #[] => PRIMARY (OTHER E)
        | Ops.AP $ #[M,N] =>
            (case compute M of
-                 PRIMARY (OTHERV M') =>
+                 PRIMARY (OTHER M') =>
                    (case out M' of
                         Ops.LAM $ #[xE] => compute (xE // N)
                       | Ops.FREE_CHOICE $ #[] => PRIMARY (getChoice ())
                       | _ => raise Stuck)
-               | NEUTRAL (R, u) => PRIMARY (AP (neutral R,N))
+               | NEUTRAL (R, u) => PRIMARY (AP (unview R,N))
                | _ => raise Stuck)
        | Ops.SPREAD $ #[M, xyE] =>
            (case compute M of
                  PRIMARY (PAIR (M1, M2)) => compute ((xyE // M1) // M2)
-               | NEUTRAL (R, u) => NEUTRAL (OTHER (Ops.SPREAD $$ #[neutral R, xyE]), u)
+               | NEUTRAL (R, u) => NEUTRAL (OTHER (Ops.SPREAD $$ #[unview R, xyE]), u)
                | _ => raise Stuck)
        | Ops.DECIDE $ #[M, xE, yF] =>
            (case compute M of
                  PRIMARY (INL M') => compute (xE // M')
                | PRIMARY (INR M') => compute (yF // M')
-               | NEUTRAL (R, u) => NEUTRAL (OTHER (Ops.DECIDE $$ #[neutral R, xE, yF]), u)
+               | NEUTRAL (R, u) => NEUTRAL (OTHER (Ops.DECIDE $$ #[unview R, xE, yF]), u)
                | _ => raise Stuck)
        | ` x => NEUTRAL (VAR x, x)
        | _ => raise Fail (toString E)

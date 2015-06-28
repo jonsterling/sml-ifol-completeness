@@ -5,24 +5,20 @@ sig
   (* These represent the known forms of evidence. For the evidence of a positive
    * type, this is an introduction form; for the evidence of a negative type,
    * this is an elimination form. *)
-  datatype primary =
+  datatype known_view =
       AX
     | PAIR of t * t
     | INL of t
     | INR of t
     | AP of t * t
-    | OTHERV of t
-
-  datatype neutral =
-      VAR of Variable.t
+    | VAR of Variable.t
     | OTHER of t
 
-  val primary : primary -> t
-  val neutral : neutral -> t
+  val unview : known_view -> t
 
   datatype result =
-      PRIMARY of primary
-    | NEUTRAL of neutral * Variable.t
+      PRIMARY of known_view
+    | NEUTRAL of known_view * Variable.t
 
   val compute : t -> result
 

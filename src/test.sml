@@ -9,7 +9,6 @@ struct
   open EvidenceOps PropositionalOperators
   structure E = Evidence and V = Variable and P = Prop
 
-  val x = V.named "x"
   val ax = E.$$ (AX, #[])
   fun disj p q = P.$$ (OR, #[p,q])
   fun conj p q = P.$$ (AND, #[p,q])
@@ -23,8 +22,10 @@ struct
 
   fun test () =
   let
-    val evd = lam x (ap freechoice ax)
-    val prop = implies tru (disj tru tru)
+    val f = V.named "f"
+    val x = V.named "x"
+    val evd = lam f (lam x (ap freechoice (E.``x)))
+    val prop = implies (implies tru tru) (implies tru (disj tru tru))
     val proof = proofFromEvidence (Context.empty, prop, evd)
       handle E.Malformed msg => raise Fail ("Malformed evidence: " ^ msg)
   in
@@ -37,7 +38,6 @@ struct
 
   val _ =
     (test ();
-     test ();
      test ();
      test ())
 end
